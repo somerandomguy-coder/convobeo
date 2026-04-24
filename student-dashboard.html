@@ -220,7 +220,7 @@
                 <div class="settings-card-header"><div class="settings-card-title">Notifications</div></div>
                 <div class="settings-card-body">
                   <div class="settings-row"><div><div class="settings-row-label">Task Due Reminders</div><div class="settings-row-sub">Get notified when a task is due soon</div></div><label class="toggle"><input type="checkbox" checked /><span class="toggle-slider"></span></label></div>
-                  <div class="settings-row"><div><div class="settings-row-label">Overdue Alerts</div><div class="settings-row-sub">Alert when tasks pass their due date</div></div><label class="toggle"><input type="checkbox" checked /></label></div>
+                  <div class="settings-row"><div><div class="settings-row-label">Overdue Alerts</div><div class="settings-row-sub">Alert when tasks pass their due date</div></div><label class="toggle"><input type="checkbox" checked /><span class="toggle-slider"></span></label></div>
                 </div>
               </div>
             </div>
@@ -394,7 +394,7 @@
     showToast('Task submitted!');
   }
 
-  let calYear=new Date().getFullYear(), calMonth=3;
+  let calYear=new Date().getFullYear(), calMonth=new Date().getMonth();
   function changeMonth(d){
     calMonth += d;
     if (calMonth < 0) { calMonth = 11; calYear -= 1; }
@@ -459,8 +459,22 @@
   function toggleOwnTask(id){ saveOwnTasks(getOwnTasks().map(t=>t.id==id?{...t,done:!t.done}:t)); renderOwnTasks(); }
   function deleteOwnTask(id){ saveOwnTasks(getOwnTasks().filter(t=>t.id!=id)); renderOwnTasks(); renderStats(); }
 
-  function renderStats(){ const a=getMyAssignments(), s=getSubmissions().filter(s=>s.studentName===STUDENT_NAME); document.getElementById('stat-total').textContent=a.length; document.getElementById('stat-submitted').textContent=s.length; document.getElementById('stat-outstanding').textContent=Math.max(0,a.length-s.length); document.getElementById('stat-own').textContent=getOwnTasks().length; document.getElementById('sidebar-task-count').textContent=Math.max(0,a.length-s.length); }
+  function renderStats(){
+    const assignments = getMyAssignments();
+    const assignmentIds = new Set(assignments.map(a => String(a.id)));
+    const submissions = getSubmissions().filter(s =>
+      s.studentName === STUDENT_NAME && assignmentIds.has(String(s.taskId))
+    );
+    document.getElementById('stat-total').textContent = assignments.length;
+    document.getElementById('stat-submitted').textContent = submissions.length;
+    document.getElementById('stat-outstanding').textContent = Math.max(0, assignments.length - submissions.length);
+    document.getElementById('stat-own').textContent = getOwnTasks().length;
+    document.getElementById('sidebar-task-count').textContent = Math.max(0, assignments.length - submissions.length);
+  }
   function showSettingsTab(t){
+    document.querySelectorAll('.settings-nav-item').forEach(el => {
+      el.classList.toggle('active', el.textContent.toLowerCase().includes(t));
+    });
     document.querySelectorAll('.settings-panel').forEach(el=>el.style.display='none');
     const target=document.getElementById('sp-'+t);
     if(target) target.style.display='block';

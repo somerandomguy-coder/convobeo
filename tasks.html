@@ -123,6 +123,11 @@
 <script src="js/app.js"></script>
 <script src="js/ui.js"></script>
 <script>
+  const session = JSON.parse(localStorage.getItem('tf_user') || 'null');
+  const role = session?.role === 'educator' ? 'teacher' : session?.role;
+  if (role === 'teacher') {
+    window.location.replace('teacher-dashboard.html#assigned');
+  }
   const count = loadTasks().filter(t => !t.archived && !t.done).length;
   const badge = document.getElementById('sidebar-task-count');
   if (badge) badge.textContent = count;

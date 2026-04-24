@@ -67,17 +67,17 @@
     </div>
     <div class="sidebar-section">
       <div class="sidebar-section-label">Teacher Menu</div>
-      <a href="teacher-dashboard.html" class="nav-item active">
+      <a href="teacher-dashboard.html#assigned" class="nav-item" data-tab-link="assigned">
         <span class="nav-icon">🏠</span> Dashboard
       </a>
-      <a href="#" class="nav-item" onclick="showTab('assigned');return false;">
+      <a href="teacher-dashboard.html#assigned" class="nav-item" data-tab-link="assigned">
         <span class="nav-icon">📋</span> Assigned Tasks
         <span class="nav-badge" id="sidebar-task-count">0</span>
       </a>
-      <a href="#" class="nav-item" onclick="showTab('submissions');return false;">
+      <a href="teacher-dashboard.html#submissions" class="nav-item" data-tab-link="submissions">
         <span class="nav-icon">📬</span> Submissions
       </a>
-      <a href="settings.html" class="nav-item">
+      <a href="teacher-dashboard.html#settings" class="nav-item" data-tab-link="settings">
         <span class="nav-icon">⚙️</span> Settings
       </a>
     </div>
@@ -284,14 +284,32 @@
   });
 
   const TABS = ['assigned','submissions','settings'];
-  function showTab(tab) {
-    TABS.forEach(t=>{
-      document.getElementById('panel-'+t).style.display = t===tab?'':'none';
-      document.getElementById('tab-'+t).className='tab'+(t===tab?' active':'');
+  let activeTab = 'assigned';
+
+  function syncSidebarNav(tab) {
+    document.querySelectorAll('[data-tab-link]').forEach(link => {
+      link.classList.toggle('active', link.dataset.tabLink === tab);
     });
-    if(tab==='submissions') renderSubmissions();
-    if(tab==='settings')    initTeacherSettings();
   }
+
+  function showTab(tab) {
+    activeTab = TABS.includes(tab) ? tab : 'assigned';
+    TABS.forEach(t=>{
+      document.getElementById('panel-'+t).style.display = t===activeTab?'':'none';
+      document.getElementById('tab-'+t).className='tab'+(t===activeTab?' active':'');
+    });
+    syncSidebarNav(activeTab);
+    if (location.hash !== '#' + activeTab) {
+      history.replaceState(null, '', '#' + activeTab);
+    }
+    if(activeTab==='submissions') renderSubmissions();
+    if(activeTab==='settings')    initTeacherSettings();
+  }
+
+  window.addEventListener('hashchange', () => {
+    const requestedTab = location.hash.replace('#', '');
+    showTab(TABS.includes(requestedTab) ? requestedTab : 'assigned');
+  });
 
   function showSettingTab(t){
     ['profile','notifications','appearance','data'].forEach(id=>{
@@ -319,12 +337,25 @@
     const pass  = document.getElementById('t-pass').value;
     if(!name)  { showToast('Name cannot be empty.'); return; }
     if(!email) { showToast('Email cannot be empty.'); return; }
-    const accounts=getAccounts(), idx=accounts.findIndex(a=>a.email===user.email);
+    const oldEmail = user.email;
+    const accounts=getAccounts(), idx=accounts.findIndex(a=>a.email===oldEmail);
     if(idx===-1){ showToast('Account not found.'); return; }
+    if (email !== oldEmail && accounts.some((a, i) => i !== idx && a.email.toLowerCase() === email)) {
+      showToast('That email is already used by another account.');
+      return;
+    }
     accounts[idx].name=name;
     accounts[idx].email=email;
     if(pass) accounts[idx].password=pass;
     saveAccounts(accounts);
+
+    if (email !== oldEmail) {
+      const migratedAssignments = getAssignments().map(a =>
+        a.createdBy === oldEmail ? { ...a, createdBy: email } : a
+      );
+      saveAssignments(migratedAssignments);
+    }
+
     user.name=name; user.email=email;
     localStorage.setItem('tf_user',JSON.stringify(user));
     document.getElementById('sidebar-name').textContent=name;
@@ -343,7 +374,7 @@
       const div = document.createElement('div');
       div.className = 'student-check-item';
       const displayName = displayStudentName(s.name);
-      div.innerHTML = `<input type="checkbox" id="sc-${s.email}" value="${displayName}" />
+      div.innerHTML = `<input type="checkbox" id="sc-${s.email}" value="${s.email}" data-name="${displayName}" />
         <label for="sc-${s.email}">${displayName} <span style="color:#555;font-size:.75rem;">(${s.email})</span></label>`;
       list.appendChild(div);
     });
@@ -355,7 +386,10 @@
   }
 
   function getSelectedStudents() {
-    return [...document.querySelectorAll('#student-checklist .student-check-item input:checked')].map(cb=>cb.value);
+    return [...document.querySelectorAll('#student-checklist .student-check-item input:checked')].map(cb => ({
+      email: cb.value,
+      name: cb.dataset.name || cb.value,
+    }));
   }
 
   function openAssignModal() {
@@ -382,12 +416,13 @@
     if (!selected.length) { errEl.textContent='Please select at least one student.'; errEl.style.display='block'; return; }
     errEl.style.display='none';
     const assignments = getAssignments();
-    selected.forEach(studentName => {
+    selected.forEach(student => {
       assignments.push({
         id: Date.now()+Math.random(),
         title,
         desc: document.getElementById('at-desc').value.trim(),
-        student: studentName,
+        student: student.name,
+        studentEmail: student.email,
         priority,
         dueDate: document.getElementById('at-date').value,
         createdAt: new Date().toISOString(),
@@ -505,6 +540,7 @@
   }
 
   renderAll();
-  </script>
+  showTab(TABS.includes(location.hash.replace('#', '')) ? location.hash.replace('#', '') : 'assigned');
+</script>
 </body>
 </html>

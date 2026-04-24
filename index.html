@@ -127,6 +127,20 @@
 <script src="js/app.js"></script>
 <script src="js/ui.js"></script>
 <script>
+  const session = JSON.parse(localStorage.getItem('tf_user') || 'null');
+  const role = session?.role === 'educator' ? 'teacher' : session?.role;
+  if (!session) {
+    window.location.replace('login.html');
+  } else if (role === 'teacher') {
+    localStorage.setItem('tf_user', JSON.stringify({ ...session, role: 'teacher' }));
+    window.location.replace('teacher-dashboard.html');
+  } else if (role === 'student') {
+    window.location.replace('student-dashboard.html');
+  } else {
+    localStorage.removeItem('tf_user');
+    window.location.replace('login.html');
+  }
+
   const count = loadTasks().filter(t => !t.archived && !t.done).length;
   const badge = document.getElementById('sidebar-task-count');
   if (badge) badge.textContent = count;
