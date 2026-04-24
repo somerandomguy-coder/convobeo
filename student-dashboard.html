@@ -114,11 +114,11 @@
     </div>
     <div class="sidebar-section">
       <div class="sidebar-section-label">Student Menu</div>
-      <a href="student-dashboard.html" class="nav-item active"><span class="nav-icon">🏠</span> Dashboard</a>
-      <a href="#" class="nav-item" onclick="showTab('assigned');return false;"><span class="nav-icon">📋</span> Assigned Tasks<span class="nav-badge" id="sidebar-task-count">0</span></a>
-      <a href="#" class="nav-item" onclick="showTab('schedule');return false;"><span class="nav-icon">📅</span> My Schedule</a>
-      <a href="#" class="nav-item" onclick="showTab('own');return false;"><span class="nav-icon">✅</span> My Tasks</a>
-      <a href="#" class="nav-item" onclick="showTab('settings');return false;"><span class="nav-icon">⚙️</span> Settings</a>
+      <a href="student-dashboard.html" class="nav-item" data-tab-link="dashboard"><span class="nav-icon">🏠</span> Dashboard</a>
+      <a href="student-dashboard.html#assigned" class="nav-item" data-tab-link="assigned"><span class="nav-icon">📋</span> Assigned Tasks<span class="nav-badge" id="sidebar-task-count">0</span></a>
+      <a href="student-dashboard.html#schedule" class="nav-item" data-tab-link="schedule"><span class="nav-icon">📅</span> My Schedule</a>
+      <a href="student-dashboard.html#own" class="nav-item" data-tab-link="own"><span class="nav-icon">✅</span> My Tasks</a>
+      <a href="student-dashboard.html#settings" class="nav-item" data-tab-link="settings"><span class="nav-icon">⚙️</span> Settings</a>
     </div>
     <div class="sidebar-footer">
       <div class="user-card">
@@ -329,15 +329,31 @@
   });
 
   const TABS = ['assigned','schedule','own','settings'];
-  function showTab(tab) {
-    TABS.forEach(t=>{
-      document.getElementById('panel-'+t).style.display = t===tab?'':'none';
-      document.getElementById('tab-'+t).className='tab'+(t===tab?' active':'');
+  function syncSidebarNav(tab) {
+    document.querySelectorAll('[data-tab-link]').forEach(link => {
+      link.classList.toggle('active', link.dataset.tabLink === tab);
     });
-    if(tab==='schedule') renderCalendar();
-    if(tab==='own')      renderOwnTasks();
-    if(tab==='settings') initSettings();
   }
+
+  function showTab(tab) {
+    const activeTab = TABS.includes(tab) ? tab : 'assigned';
+    TABS.forEach(t=>{
+      document.getElementById('panel-'+t).style.display = t===activeTab?'':'none';
+      document.getElementById('tab-'+t).className='tab'+(t===activeTab?' active':'');
+    });
+    syncSidebarNav(activeTab);
+    if (location.hash !== '#' + activeTab) {
+      history.replaceState(null, '', '#' + activeTab);
+    }
+    if(activeTab==='schedule') renderCalendar();
+    if(activeTab==='own')      renderOwnTasks();
+    if(activeTab==='settings') initSettings();
+  }
+
+  window.addEventListener('hashchange', () => {
+    const requestedTab = location.hash.replace('#', '');
+    showTab(TABS.includes(requestedTab) ? requestedTab : 'assigned');
+  });
 
   
   function getMyAssignments(){
@@ -523,6 +539,7 @@
   function showToast(msg){ const t=document.createElement('div'); t.className='toast show'; t.textContent=msg; document.querySelector('.toast-container').appendChild(t); setTimeout(()=>t.remove(),3000); }
   function renderAll(){ renderStats(); renderAssigned(); }
   renderAll();
+  showTab(TABS.includes(location.hash.replace('#', '')) ? location.hash.replace('#', '') : 'assigned');
   </script>
 </body>
 </html>
