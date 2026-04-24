@@ -4,8 +4,8 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>TaskFlow – Teacher Dashboard</title>
-  <link rel="stylesheet" href="css/style" />
-  <link rel="stylesheet" href="css/pages" />
+  <link rel="stylesheet" href="css/style.css" />
+  <link rel="stylesheet" href="css/pages.css" />
   <style>
     .role-badge{display:inline-flex;align-items:center;gap:.4rem;background:rgba(79,110,247,.15);color:#7a9af8;border:1px solid rgba(79,110,247,.25);border-radius:20px;font-size:.72rem;font-weight:600;padding:.2rem .7rem;letter-spacing:.04em;text-transform:uppercase}
     .submission-row{cursor:pointer;transition:background .1s}
@@ -67,14 +67,14 @@
     </div>
     <div class="sidebar-section">
       <div class="sidebar-section-label">Teacher Menu</div>
-      <a href="teacher-dashboard" class="nav-item active">
+      <a href="teacher-dashboard.html" class="nav-item active">
         <span class="nav-icon">🏠</span> Dashboard
       </a>
       <a href="#" class="nav-item" onclick="showTab('assigned');return false;">
         <span class="nav-icon">📋</span> Assigned Tasks
         <span class="nav-badge" id="sidebar-task-count">0</span>
       </a>
-      <a href="#" class="nav-item" onclick="showTabs('submissions');return false;">
+      <a href="#" class="nav-item" onclick="showTab('submissions');return false;">
         <span class="nav-icon">📬</span> Submissions
       </a>
       <a href="settings.html" class="nav-item">
@@ -98,8 +98,8 @@
       <h1 class="topbar-title">Teacher Dashboard</h1>
       <div class="topbar-actions topbar-meta">
         <span class="role-badge">👩‍🏫 Teacher</span>
-        <button class="btn btn-primary" type="button">+ Assign Task</button>
-        <button class="signout-btn" type="button">Sign out</button>
+        <button class="btn btn-primary" type="button" onclick="openAssignModal()">+ Assign Task</button>
+        <button class="signout-btn" type="button" onclick="signOut()">Sign out</button>
       </div>
     </header>
 
@@ -129,8 +129,8 @@
 
       <div class="tab-bar">
         <div class="tab active" id="tab-assigned"    onclick="showTab('assigned')">Assigned Tasks</div>
-        <div class="tab"        id="tab-submissions" onclick="showTabs('submissions')">Submissions</div>
-        <div class="tab"        id="tab-setting"     onclick="showTab('settings')">⚙️ Settings</div>
+        <div class="tab"        id="tab-submissions" onclick="showTab('submissions')">Submissions</div>
+        <div class="tab"        id="tab-settings"    onclick="showTab('settings')">⚙️ Settings</div>
       </div>
 
       <div id="panel-assigned">
@@ -182,7 +182,7 @@
                 <div><label style="display:block;font-size:.8rem;color:#888;margin-bottom:.35rem;text-transform:uppercase;font-weight:600;">Display Name</label><input type="text" class="form-control" id="t-name" /></div>
                 <div><label style="display:block;font-size:.8rem;color:#888;margin-bottom:.35rem;text-transform:uppercase;font-weight:600;">Email</label><input type="email" class="form-control" id="t-email" /></div>
                 <div><label style="display:block;font-size:.8rem;color:#888;margin-bottom:.35rem;text-transform:uppercase;font-weight:600;">New Password</label><input type="password" class="form-control" id="t-pass" placeholder="Leave blank to keep current" /></div>
-                <div><button class="btn btn-primary" type="button">Save Changes</button></div>
+                <div><button class="btn btn-primary" type="button" onclick="saveTeacherProfile()">Save Changes</button></div>
               </div>
             </div>
             <div id="tp-notifications" style="display:none;background:#13151e;border:1px solid #2a2d3a;border-radius:12px;overflow:hidden;margin-bottom:1rem;">
@@ -208,7 +208,7 @@
 </div>
 
 
-<div class="overlay" id="assign-overlay" onclick="closeModal()"></div>
+<div class="overlay" id="assign-overlay" onclick="closeAssignModal()"></div>
 <div class="modal" id="assign-modal">
   <div class="modal-title">Assign New Task</div>
   <div class="form-group">
@@ -244,7 +244,7 @@
   <div id="assign-error" style="color:#f87171;font-size:.82rem;display:none;margin-bottom:.5rem;"></div>
   <div class="modal-footer">
     <button class="btn btn-ghost" onclick="closeAssignModal()">Cancel</button>
-    <button class="btn btn-primary" type="button">Assign Task</button>
+    <button class="btn btn-primary" type="button" onclick="saveAssignment()">Assign Task</button>
   </div>
 </div>
 
@@ -253,7 +253,9 @@
 <script>
   
   
-  const user = JSON.parse(localStorage.getItem('tf_user')||'null');
+  const rawUser = JSON.parse(localStorage.getItem('tf_user')||'null');
+  const user = rawUser ? { ...rawUser, role: rawUser.role === 'educator' ? 'teacher' : rawUser.role } : null;
+  if (user && user.role !== rawUser.role) localStorage.setItem('tf_user', JSON.stringify(user));
   if (!user || user.role !== 'teacher') window.location.href = 'login.html';
 
   function signOut(){ localStorage.removeItem('tf_user'); window.location.href='login.html'; }
@@ -420,7 +422,7 @@
       return;
     }
     tbody.innerHTML = assignments.map(a=>{
-      const subs = submissions.filter(s=>s.taskId===a.id);
+      const subs = submissions.filter(s=>String(s.taskId)===String(a.id));
       const isSubmitted = subs.length>0;
       const today = new Date().toISOString().split('T')[0];
 
@@ -465,13 +467,14 @@
   }
 
   function renderSubmissions() {
-    const submissions = getSubmissions();
-    const assignments = getAssignments();
+    const assignments = getAssignments().filter(a => a.createdBy === user.email);
+    const assignmentMap = new Map(assignments.map(a => [String(a.id), a]));
+    const submissions = getSubmissions().filter(s => assignmentMap.has(String(s.taskId)));
     const tbody = document.getElementById('submissions-table-body');
     if (!submissions.length) { tbody.innerHTML=`<tr><td colspan="5" style="text-align:center;color:var(--text-muted);padding:2rem;">No submissions yet.</td></tr>`; return; }
     const sorted=[...submissions].sort((a,b)=>new Date(b.submittedAt)-new Date(a.submittedAt));
     tbody.innerHTML=sorted.map(s=>{
-      const task=assignments.find(a=>a.id===s.taskId);
+      const task=assignmentMap.get(String(s.taskId));
       const dot={high:'🔴',medium:'🟡',low:'🟢'}[task?.priority]||'';
       const time=new Date(s.submittedAt).toLocaleString('en-AU',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
       return `<tr><td style="font-weight:600;">${s.studentName}</td><td>${task?.title||'—'}</td><td>${dot} ${task?.priority||'—'}</td><td>${time}</td><td style="color:var(--text-muted);font-size:.85rem;">${s.note||'—'}</td></tr>`;
@@ -479,9 +482,13 @@
   }
 
   function renderStats() {
-    const a=getAssignments().filter(a=>a.createdBy===user.email), s=getSubmissions();
-    const total=a.length, submitted=s.length, pending=Math.max(0,total-submitted);
-    const rate=total?Math.round((pending/total)*100):0;
+    const assignments = getAssignments().filter(a => a.createdBy === user.email);
+    const assignmentIds = new Set(assignments.map(a => String(a.id)));
+    const submissions = getSubmissions().filter(s => assignmentIds.has(String(s.taskId)));
+    const total = assignments.length;
+    const submitted = submissions.length;
+    const pending = Math.max(0, total - submitted);
+    const rate = total ? Math.round((submitted / total) * 100) : 0;
     document.getElementById('stat-total').textContent=total;
     document.getElementById('stat-submitted').textContent=submitted;
     document.getElementById('stat-pending').textContent=pending;

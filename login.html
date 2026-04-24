@@ -94,6 +94,7 @@
 </div>
 <script>
   let role = 'teacher', mode = 'signin';
+  function normalizeRole(r) { return r === 'educator' ? 'teacher' : r; }
 
   function getAccounts() {
     return JSON.parse(localStorage.getItem('tf_accounts') || 'null') || [
@@ -141,10 +142,8 @@
     const acc   = getAccounts().find(a => a.email.toLowerCase()===email && a.password===pass && a.role===role);
     if (!acc) { showErr('Invalid email, password, or role. Please try again.'); return; }
 
-    
-    const sessionRole = acc.role === 'teacher' ? 'educator' : acc.role;
-    localStorage.setItem('tf_user', JSON.stringify({ role: sessionRole, name: acc.name, email: acc.email }));
-    window.location.href = acc.role==='teacher' ? 'teacher-dashboard' : 'student-dashboard';
+    localStorage.setItem('tf_user', JSON.stringify({ role: normalizeRole(acc.role), name: acc.name, email: acc.email }));
+    window.location.href = acc.role==='teacher' ? 'teacher-dashboard.html' : 'student-dashboard.html';
   }
 
   function doSignUp() {
@@ -159,7 +158,7 @@
     const accounts = getAccounts();
     if (accounts.find(a => a.email.toLowerCase()===email)) { showErr('An account with this email already exists.'); return; }
 
-    accounts.push({ name: name.toLowerCase(), email, password: pass, role });
+    accounts.push({ name, email, password: pass, role });
     saveAccounts(accounts);
     showOk(`Account created! You can now sign in.`);
     setMode('signin');
@@ -170,7 +169,11 @@
   document.addEventListener('keydown', e => { if(e.key==='Enter') handleSubmit(); });
 
   const u = JSON.parse(localStorage.getItem('tf_user')||'null');
-  if (u) window.location.href = u.role==='teacher' ? 'teacher-dashboard' : 'student-dashboard';
+  if (u) {
+    const normalized = { ...u, role: normalizeRole(u.role) };
+    localStorage.setItem('tf_user', JSON.stringify(normalized));
+    window.location.href = normalized.role==='teacher' ? 'teacher-dashboard.html' : 'student-dashboard.html';
+  }
 </script>
 </body>
 </html>
