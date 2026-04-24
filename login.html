@@ -142,7 +142,7 @@
     if (!acc) { showErr('Invalid email, password, or role. Please try again.'); return; }
 
     
-    const sessionRole = acc.role === 'teacher' ? 'educator' : acc.role;
+    const sessionRole = acc.role;
     localStorage.setItem('tf_user', JSON.stringify({ role: sessionRole, name: acc.name, email: acc.email }));
     window.location.href = acc.role==='teacher' ? 'teacher-dashboard' : 'student-dashboard';
   }

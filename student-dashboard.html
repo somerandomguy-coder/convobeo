@@ -4,8 +4,8 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>TaskFlow – Student Dashboard</title>
-  <link rel="stylesheet" href="css/style" />
-  <link rel="stylesheet" href="css/pages" />
+  <link rel="stylesheet" href="css/style.css" />
+  <link rel="stylesheet" href="css/pages.css" />
   <style>
     .role-badge{display:inline-flex;align-items:center;gap:.4rem;background:rgba(34,197,94,.12);color:#4ade80;border:1px solid rgba(34,197,94,.25);border-radius:20px;font-size:.72rem;font-weight:600;padding:.2rem .7rem;letter-spacing:.04em;text-transform:uppercase}
     .badge{display:inline-block;padding:.2rem .6rem;border-radius:20px;font-size:.72rem;font-weight:600}
@@ -137,7 +137,7 @@
       <h1 class="topbar-title">Student Dashboard</h1>
       <div class="topbar-actions topbar-meta">
         <span class="role-badge">🎓 Student</span>
-        <button class="signout-btn" type="button">Sign out</button>
+        <button class="signout-btn" type="button" onclick="signOut()">Sign out</button>
       </div>
     </header>
 
@@ -182,7 +182,7 @@
             <input type="text" id="sc-title" class="form-control" placeholder="Event title" style="flex:2;min-width:140px;" />
             <input type="datetime-local" id="sc-time" class="form-control" style="flex:2;min-width:180px;" />
             <input type="text" id="sc-notes" class="form-control" placeholder="Notes (optional)" style="flex:2;min-width:140px;" />
-            <button class="btn" style="background:#a855f7;color:#fff;flex-shrink:0;" type="button">+ Add</button>
+            <button class="btn" style="background:#a855f7;color:#fff;flex-shrink:0;" type="button" onclick="saveScheduleEven()">+ Add</button>
           </div>
           <div id="sc-error" style="color:#f87171;font-size:.8rem;margin-top:.4rem;display:none;"></div>
         </div>
@@ -190,7 +190,7 @@
 
       <div id="panel-own" style="display:none;">
         <div style="display:flex;justify-content:flex-end;margin-bottom:1rem;">
-          <button class="btn btn-primary-green" type="button">+ Add Task</button>
+          <button class="btn btn-primary-green" type="button" onclick="openOwnTaskModal()">+ Add Task</button>
         </div>
         <div id="own-list"></div>
       </div>
@@ -211,7 +211,7 @@
                   <div class="form-group" style="margin:0;"><label class="form-label">Display Name</label><input type="text" class="form-control" id="s-name" /></div>
                   <div class="form-group" style="margin:0;"><label class="form-label">Email</label><input type="email" class="form-control" id="s-email" /></div>
                   <div class="form-group" style="margin:0;"><label class="form-label">New Password</label><input type="password" class="form-control" id="s-pass" placeholder="Leave blank to keep current" /></div>
-                  <div><button class="btn btn-primary-green" type="button">Save Changes</button></div>
+                  <div><button class="btn btn-primary-green" type="button" onclick="saveProfile()">Save Changes</button></div>
                 </div>
               </div>
             </div>
@@ -243,7 +243,7 @@
               <div class="settings-card danger-zone">
                 <div class="settings-card-header"><div class="settings-card-title" style="color:#f87171;">⚠️ Danger Zone</div></div>
                 <div class="settings-card-body">
-                  <div class="settings-row"><div><div class="settings-row-label">Delete my personal tasks</div><div class="settings-row-sub">Permanently removes all your personal tasks.</div></div><button class="btn btn-danger" type="button">Delete All</button></div>
+                  <div class="settings-row"><div><div class="settings-row-label">Delete my personal tasks</div><div class="settings-row-sub">Permanently removes all your personal tasks.</div></div><button class="btn btn-danger" type="button" onclick="clearMyTasks()">Delete All</button></div>
                 </div>
               </div>
             </div>
@@ -305,11 +305,11 @@
 
   function getAccounts()    { return JSON.parse(localStorage.getItem('tf_accounts')||'[]'); }
   function saveAccounts(a)  { localStorage.setItem('tf_accounts',JSON.stringify(a)); }
-  function getAssignments() { return JSON.parse(localStorage.getItem('tf_assignment')||'[]'); }
+  function getAssignments() { return JSON.parse(localStorage.getItem('tf_assignments')||'[]'); }
 
   
-  function getSubmissions() { return JSON.parse(localStorage.getItem('tf_submisions')||'[]'); }
-  function saveSubmissions(a){ localStorage.setItem('tf_submisions',JSON.stringify(a)); }
+  function getSubmissions() { return JSON.parse(localStorage.getItem('tf_submissions')||'[]'); }
+  function saveSubmissions(a){ localStorage.setItem('tf_submissions',JSON.stringify(a)); }
 
   function getSchedule()    { return JSON.parse(localStorage.getItem('tf_schedule_'+STUDENT_NAME)||'[]'); }
   function saveSchedule(a)  { localStorage.setItem('tf_schedule_'+STUDENT_NAME,JSON.stringify(a)); }
@@ -401,7 +401,7 @@
     const byDate={};
     function addEv(ds,ev){ if(!ds)return; if(!byDate[ds])byDate[ds]=[]; byDate[ds].push(ev); }
 
-    const assignments=getAssignments().filter(a=>a.assignedTo===STUDENT_NAME);
+    const assignments=getAssignments().filter(a=>a.student===STUDENT_NAME);
     const submissions=getSubmissions();
     assignments.forEach(a=>{ if(!a.dueDate)return; const sub=submissions.find(s=>s.taskId==a.id&&s.studentName===STUDENT_NAME); addEv(a.dueDate,{ label:a.title, cls:sub?'type-teacher-submitted':'type-teacher-'+(a.priority||'medium'), type:'📋 Teacher task', due:a.dueDate, priority:a.priority, status:sub?'Submitted ✓':'Pending', note:a.desc }); });
     schedule.forEach(e=>{ const ds=e.time?e.time.split('T')[0]:null; if(!ds)return; const timeStr=e.time?new Date(e.time).toLocaleTimeString('en-AU',{hour:'2-digit',minute:'2-digit'}):''; addEv(ds,{ label:(timeStr?timeStr+' ':'')+e.title, cls:'type-personal', type:'📅 Personal event', due:ds, status:'', note:e.notes }); });

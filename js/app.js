@@ -3,7 +3,7 @@
 
 
 
-const STORAGE_KEY = 'taskflow_taks';
+const STORAGE_KEY = 'taskflow_tasks';
 
 function saveTasks(tasks) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
@@ -70,7 +70,7 @@ function closeModal(modalId, overlayId) {
   document.getElementById(overlayId)?.classList.remove('open');
 }
 document.addEventListener('keydown', e => {
-  if (e.key === 'Esc') {
+  if (e.key === 'Escape') {
     document.querySelectorAll('.modal.open').forEach(m => m.classList.remove('open'));
     document.querySelectorAll('.overlay.open').forEach(o => o.classList.remove('open'));
   }
